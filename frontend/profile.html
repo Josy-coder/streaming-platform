@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile - StreamLive</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
+    
+    <script src="js/common.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+<div x-data="profilePage()" x-init="checkAuth()">
+    
+    <nav class="bg-gray-800">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold">
+                            <a href="/">StreamLive</a>
+                        </h1>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="/" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Home</a>
+                            <a href="/categories.html" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Categories</a>
+                            <a href="/dashboard.html" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-4 flex items-center md:ml-6">
+                        <div class="flex items-center">
+                            <a href="/profile.html" class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium" x-text="user ? user.username : ''"></a>
+                            <button @click="logout()" class="ml-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="py-10">
+        <header>
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <h1 class="text-3xl font-bold tracking-tight">Your Profile</h1>
+            </div>
+        </header>
+        
+        <div x-show="!isAuthenticated" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-6">
+            <div class="bg-gray-800 rounded-lg p-8 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <h3 class="mt-2 text-xl font-semibold">Authentication Required</h3>
+                <p class="mt-1 text-gray-400">You need to be logged in to view your profile.</p>
+                <div class="mt-6">
+                    <a href="/" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                        Return to homepage to login
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <main x-show="isAuthenticated">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-6">
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="w-24 h-24 rounded-full bg-gray-700 flex items-center justify-center text-4xl font-bold" x-text="getInitials(user ? user.username : '')"></div>
+                        </div>
+                        <div class="ml-6">
+                            <h2 class="text-2xl font-semibold" x-text="user ? user.username : ''"></h2>
+                            <p class="text-gray-400" x-text="user ? user.email : ''"></p>
+                            <p class="text-sm text-gray-500 mt-1" x-text="user ? 'Member since ' + formatDate(user.createdAt) : ''"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <h2 class="text-xl font-semibold mb-4">Account Settings</h2>
+                    <div class="bg-gray-800 rounded-lg p-6">
+                        <form @submit.prevent="updateProfile">
+                            <div class="mb-4">
+                                <label for="email" class="block text-sm font-medium text-gray-400 mb-1">Email Address</label>
+                                <input x-model="profileForm.email" type="email" id="email" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="mb-6">
+                                <label for="new-password" class="block text-sm font-medium text-gray-400 mb-1">New Password (leave blank to keep current)</label>
+                                <input x-model="profileForm.password" type="password" id="new-password" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div x-show="updateError" class="mb-4 text-red-500 text-sm" x-text="updateError"></div>
+                            <div x-show="updateSuccess" class="mb-4 text-green-500 text-sm">Profile updated successfully!</div>
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md">
+                                Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <h2 class="text-xl font-semibold mb-4 text-red-500">Danger Zone</h2>
+                    <div class="bg-gray-800 rounded-lg p-6 border border-red-700">
+                        <h3 class="text-lg font-medium mb-2">Delete Account</h3>
+                        <p class="text-gray-400 mb-4">Once you delete your account, there is no going back. Please be certain.</p>
+                        <button @click="confirmDeleteAccount()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div x-show="deleteModalOpen" class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div @click.outside="deleteModalOpen = false" class="bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-red-500">Delete Account</h2>
+                <button @click="deleteModalOpen = false" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <p class="text-gray-300 mb-4">This action cannot be undone. This will permanently delete your account, streams, and remove you from all followers lists.</p>
+            <p class="text-gray-300 mb-6">Please type <strong class="text-white">delete my account</strong> to confirm.</p>
+            <div class="mb-4">
+                <input x-model="deleteConfirmation" type="text" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="delete my account">
+            </div>
+            <div class="flex justify-end">
+                <button @click="deleteModalOpen = false" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md mr-2">
+                    Cancel
+                </button>
+                <button @click="deleteAccount()" :disabled="deleteConfirmation !== 'delete my account'" :class="deleteConfirmation === 'delete my account' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-800 opacity-50 cursor-not-allowed'" class="text-white px-4 py-2 rounded-md">
+                    Delete Account
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function profilePage() {
+        return {
+            // State
+            isAuthenticated: false,
+            user: null,
+            updateError: null,
+            updateSuccess: false,
+            deleteModalOpen: false,
+            deleteConfirmation: '',
+            // Form data
+            profileForm: {
+                email: '',
+                password: ''
+            },
+            // Initialize
+            async checkAuth() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    this.isAuthenticated = false;
+                    this.user = null;
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_URL}/api/user`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const userData = await response.json();
+                        this.user = userData;
+                        this.isAuthenticated = true;
+                        // Initialize form with current values
+                        this.profileForm.email = userData.email;
+                    } else {
+                        // Token is invalid, clear it
+                        localStorage.removeItem('token');
+                        this.isAuthenticated = false;
+                        this.user = null;
+                    }
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                    this.isAuthenticated = false;
+                    this.user = null;
+                }
+            },
+            async updateProfile() {
+                this.updateError = null;
+                this.updateSuccess = false;
+                // Check if form is empty
+                if (!this.profileForm.email && !this.profileForm.password) {
+                    this.updateError = 'No changes to save';
+                    return;
+                }
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/user`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.profileForm)
+                    });
+                    if (response.ok) {
+                        const userData = await response.json();
+                        this.user = userData;
+                        this.updateSuccess = true;
+                        // Clear password field after update
+                        this.profileForm.password = '';
+                        // Hide success message after 3 seconds
+                        setTimeout(() => {
+                            this.updateSuccess = false;
+                        }, 3000);
+                    } else {
+                        const error = await response.json();
+                        this.updateError = error.error || 'Failed to update profile';
+                    }
+                } catch (error) {
+                    console.error('Profile update error:', error);
+                    this.updateError = 'An unexpected error occurred';
+                }
+            },
+            confirmDeleteAccount() {
+                this.deleteConfirmation = '';
+                this.deleteModalOpen = true;
+            },
+            async deleteAccount() {
+                if (this.deleteConfirmation !== 'delete my account') return;
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/user`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        localStorage.removeItem('token');
+                        this.isAuthenticated = false;
+                        this.user = null;
+                        this.deleteModalOpen = false;
+                        // Redirect to home page
+                        window.location.href = '/';
+                    } else {
+                        alert('Failed to delete account');
+                    }
+                } catch (error) {
+                    console.error('Account deletion error:', error);
+                    alert('An error occurred while deleting your account');
+                }
+            },
+            logout() {
+                localStorage.removeItem('token');
+                this.isAuthenticated = false;
+                this.user = null;
+                window.location.href = '/';
+            },
+            // Utility functions
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString();
+            },
+            getInitials(name) {
+                if (!name) return '';
+                return name.charAt(0).toUpperCase();
+            }
+        };
+    }
+</script>
+</body>
+</html>

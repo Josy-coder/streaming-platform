@@ -1,0 +1,79 @@
+version: '3'
+
+services:
+  # Frontend static server
+  frontend:
+    image: nginx:alpine
+    container_name: stream-frontend
+    ports:
+      - "8080:80"
+    volumes:
+      - ../frontend:/usr/share/nginx/html
+      - ./nginx/frontend.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Go API backend
+  api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    container_name: stream-api
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../api:/app
+      - ../data:/data
+      - ../media:/media
+    environment:
+      - PORT=3000
+      - DB_PATH=/data/streaming.db
+      - MEDIA_PATH=/media
+      - SECRET_KEY=changeme_in_production
+    depends_on:
+      - valkey
+    restart: unless-stopped
+
+  # RTMP ingest server
+  rtmp:
+    image: tiangolo/nginx-rtmp
+    container_name: stream-rtmp
+    ports:
+      - "1935:1935"  # RTMP port
+      - "8081:80"    # HLS access port
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../media:/media
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Valkey (Redis fork) for chat
+  valkey:
+    image: valkey/valkey:latest
+    container_name: stream-valkey
+    ports:
+      - "6379:6379"
+    volumes:
+      - ../data/valkey:/data
+    restart: unless-stopped
+
+  # MinIO for file storage (optional, comment out if not needed)
+  minio:
+    image: minio/minio
+    container_name: stream-minio
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    volumes:
+      - ../data/minio:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+
+volumes:
+  data:
+  media:

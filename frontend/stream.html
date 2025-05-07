@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Viewing - StreamLive</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    
+    <script src="js/auth.js"></script>
+    <script src="js/common.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+<div x-data="streamPage()" x-init="checkAuth(); loadStreamData(); initChat()">
+    
+    <nav class="bg-gray-800">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold">
+                            <a href="/">StreamLive</a>
+                        </h1>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="/" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Home</a>
+                            <a href="/categories.html" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Categories</a>
+                            <template x-if="isAuthenticated">
+                                <a href="/dashboard.html" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Dashboard</a>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-4 flex items-center md:ml-6">
+                        <template x-if="!isAuthenticated">
+                            <div class="flex space-x-4">
+                                <button @click="openLoginModal()" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Login</button>
+                                <button @click="openRegisterModal()" class="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-3 py-2 text-sm font-medium">Sign Up</button>
+                            </div>
+                        </template>
+                        <template x-if="isAuthenticated">
+                            <div class="flex items-center">
+                                <a href="/profile.html" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium" x-text="user.username"></a>
+                                <button @click="logout()" class="ml-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Logout</button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="py-6">
+        <main>
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                
+                <div x-show="loading" class="flex items-center justify-center py-12">
+                    <div role="status">
+                        <svg aria-hidden="true" class="inline w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                        </svg>
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+                
+                <div x-show="!loading && !stream" class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-xl font-semibold">Stream not found</h3>
+                    <p class="mt-1 text-gray-500">This stream does not exist or has ended.</p>
+                    <div class="mt-6">
+                        <a href="/" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                            Return to homepage
+                        </a>
+                    </div>
+                </div>
+                
+                <div x-show="!loading && stream" class="grid grid-cols-12 gap-6">
+                    
+                    <div class="col-span-12 lg:col-span-8">
+                        
+                        <div class="aspect-video bg-black rounded-lg overflow-hidden">
+                            <video id="videoPlayer" class="w-full h-full" controls autoplay></video>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h1 class="text-2xl font-bold" x-text="stream.title"></h1>
+                            <div class="flex items-center justify-between mt-2">
+                                <div class="flex items-center">
+                                    <span class="bg-red-600 text-xs font-semibold px-2 py-1 rounded mr-2">LIVE</span>
+                                    <span class="text-gray-400" x-text="stream.username"></span>
+                                </div>
+                                <div class="flex items-center text-gray-400">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-1">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                    </svg>
+                                    <span x-text="stream.viewerCount"></span>
+                                    <span class="ml-2">viewers</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 bg-gray-800 rounded-lg p-4">
+                                <h3 class="font-semibold mb-2">About the stream</h3>
+                                <p x-text="stream.description || 'No description provided.'"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 bg-gray-800 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-xl font-bold" x-text="getInitials(stream.username)"></div>
+                                </div>
+                                <div class="ml-4">
+                                    <h2 class="text-lg font-semibold" x-text="stream.username"></h2>
+                                    <button class="mt-1 bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded-md">Follow</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-12 lg:col-span-4">
+                        <div class="bg-gray-800 rounded-lg h-[600px] flex flex-col">
+                            <div class="p-3 border-b border-gray-700">
+                                <h3 class="font-semibold">Live Chat</h3>
+                            </div>
+                            
+                            <div class="flex-1 overflow-y-auto p-3" id="chatMessages">
+                                <template x-for="message in chatMessages" :key="message.id || message.createdAt">
+                                    <div :class="message.type === 'system' ? 'text-gray-500' : ''" class="mb-3">
+                                        <template x-if="message.type === 'system'">
+                                            <div class="text-xs italic" x-text="message.content"></div>
+                                        </template>
+                                        <template x-if="message.type !== 'system'">
+                                            <div>
+                                                <span class="font-semibold" x-text="message.username + ':'"></span>
+                                                <span x-text="message.content"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            <div class="p-2 border-t border-gray-700">
+                                <div class="flex space-x-2">
+                                    <button @click="sendEmoji('❤️')" class="bg-gray-700 hover:bg-gray-600 rounded-full w-8 h-8 flex items-center justify-center">❤️</button>
+                                    <button @click="sendEmoji('😂')" class="bg-gray-700 hover:bg-gray-600 rounded-full w-8 h-8 flex items-center justify-center">😂</button>
+                                    <button @click="sendEmoji('👍')" class="bg-gray-700 hover:bg-gray-600 rounded-full w-8 h-8 flex items-center justify-center">👍</button>
+                                    <button @click="sendEmoji('🔥')" class="bg-gray-700 hover:bg-gray-600 rounded-full w-8 h-8 flex items-center justify-center">🔥</button>
+                                    <button @click="sendEmoji('😮')" class="bg-gray-700 hover:bg-gray-600 rounded-full w-8 h-8 flex items-center justify-center">😮</button>
+                                </div>
+                            </div>
+                            
+                            <div class="p-3 border-t border-gray-700">
+                                <form @submit.prevent="sendChatMessage">
+                                    <div class="flex">
+                                        <input x-model="chatInput" type="text" placeholder="Send a message" class="flex-1 bg-gray-700 text-white rounded-l-md px-3 py-2 focus:outline-none">
+                                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-r-md px-3 py-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="emojiContainer" class="fixed bottom-0 left-0 w-full h-full pointer-events-none z-10 overflow-hidden"></div>
+    
+    <div x-show="loginModalOpen" class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div @click.outside="loginModalOpen = false" class="bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Login</h2>
+                <button @click="loginModalOpen = false" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form @submit.prevent="login()">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-400 mb-1">Username</label>
+                    <input x-model="loginForm.username" type="text" id="username" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-400 mb-1">Password</label>
+                    <input x-model="loginForm.password" type="password" id="password" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div x-show="loginError" class="mb-4 text-red-500 text-sm" x-text="loginError"></div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md">Login</button>
+            </form>
+            <div class="mt-4 text-center text-sm text-gray-400">
+                Don't have an account?
+                <button @click="loginModalOpen = false; openRegisterModal()" class="text-blue-500 hover:underline">Sign up</button>
+            </div>
+        </div>
+    </div>
+    
+    <div x-show="registerModalOpen" class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div @click.outside="registerModalOpen = false" class="bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Create Account</h2>
+                <button @click="registerModalOpen = false" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form @submit.prevent="register()">
+                <div class="mb-4">
+                    <label for="register-username" class="block text-sm font-medium text-gray-400 mb-1">Username</label>
+                    <input x-model="registerForm.username" type="text" id="register-username" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="register-email" class="block text-sm font-medium text-gray-400 mb-1">Email</label>
+                    <input x-model="registerForm.email" type="email" id="register-email" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="register-password" class="block text-sm font-medium text-gray-400 mb-1">Password</label>
+                    <input x-model="registerForm.password" type="password" id="register-password" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div x-show="registerError" class="mb-4 text-red-500 text-sm" x-text="registerError"></div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md">Create Account</button>
+            </form>
+            <div class="mt-4 text-center text-sm text-gray-400">
+                Already have an account?
+                <button @click="registerModalOpen = false; openLoginModal()" class="text-blue-500 hover:underline">Login</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function streamPage() {
+        return {
+            // State
+            isAuthenticated: false,
+            user: null,
+            stream: null,
+            loading: true,
+            streamId: null,
+            loginModalOpen: false,
+            registerModalOpen: false,
+            loginError: null,
+            registerError: null,
+            // Chat
+            ws: null,
+            chatMessages: [],
+            chatInput: '',
+            // Video player
+            player: null,
+            // Form data
+            loginForm: {
+                username: '',
+                password: ''
+            },
+            registerForm: {
+                username: '',
+                email: '',
+                password: ''
+            },
+            // Initialize
+            init() {
+                // Get stream ID from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                this.streamId = urlParams.get('id');
+                if (!this.streamId) {
+                    // No stream ID provided
+                    this.loading = false;
+                    this.stream = null;
+                    return;
+                }
+            },
+            // Methods for auth
+            async checkAuth() {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    try {
+                        const response = await fetch(`${API_URL}/api/user`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        if (response.ok) {
+                            const userData = await response.json();
+                            this.user = userData;
+                            this.isAuthenticated = true;
+                        } else {
+                            // Token is invalid, clear it
+                            localStorage.removeItem('token');
+                            this.isAuthenticated = false;
+                            this.user = null;
+                        }
+                    } catch (error) {
+                        console.error('Auth check error:', error);
+                        this.isAuthenticated = false;
+                        this.user = null;
+                    }
+                }
+            },
+            openLoginModal() {
+                this.loginModalOpen = true;
+                this.registerModalOpen = false;
+                this.loginError = null;
+                this.loginForm = { username: '', password: '' };
+            },
+            openRegisterModal() {
+                this.registerModalOpen = true;
+                this.loginModalOpen = false;
+                this.registerError = null;
+                this.registerForm = { username: '', email: '', password: '' };
+            },
+            async login() {
+                this.loginError = null;
+                try {
+                    const response = await fetch(`${API_URL}/api/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.loginForm)
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('token', data.token);
+                        this.user = data.user;
+                        this.isAuthenticated = true;
+                        this.loginModalOpen = false;
+                        // Reconnect WebSocket with auth
+                        this.reconnectChat();
+                    } else {
+                        const error = await response.json();
+                        this.loginError = error.error || 'Login failed. Please check your credentials.';
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.loginError = 'An unexpected error occurred. Please try again.';
+                }
+            },
+            async register() {
+                this.registerError = null;
+                try {
+                    const response = await fetch(`${API_URL}/api/auth/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.registerForm)
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('token', data.token);
+                        this.user = data.user;
+                        this.isAuthenticated = true;
+                        this.registerModalOpen = false;
+                        // Reconnect WebSocket with auth
+                        this.reconnectChat();
+                    } else {
+                        const error = await response.json();
+                        this.registerError = error.error || 'Registration failed. Please try again.';
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    this.registerError = 'An unexpected error occurred. Please try again.';
+                }
+            },
+            logout() {
+                localStorage.removeItem('token');
+                this.isAuthenticated = false;
+                this.user = null;
+                // Reconnect WebSocket without auth
+                this.reconnectChat();
+            },
+            // Stream methods
+            async loadStreamData() {
+                if (!this.streamId) return;
+                this.loading = true;
+                try {
+                    const response = await fetch(`${API_URL}/api/streams/${this.streamId}`);
+                    if (response.ok) {
+                        this.stream = await response.json();
+                        this.initializePlayer();
+                        document.title = `${this.stream.title} - ${this.stream.username} - StreamLive`;
+                    } else {
+                        console.error('Stream not found');
+                        this.stream = null;
+                    }
+                } catch (error) {
+                    console.error('Error loading stream:', error);
+                    this.stream = null;
+                } finally {
+                    this.loading = false;
+                }
+            },
+            initializePlayer() {
+                if (!this.stream) return;
+                const videoElement = document.getElementById('videoPlayer');
+                if (!videoElement) return;
+                // Get HLS URL
+                const hlsUrl = `${MEDIA_URL}/hls/${this.stream.id}/index.m3u8`;
+                // Check if HLS.js is supported
+                if (Hls.isSupported()) {
+                    const hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true
+                    });
+                    hls.loadSource(hlsUrl);
+                    hls.attachMedia(videoElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        videoElement.play();
+                    });
+                    this.player = hls;
+                }
+                // For browsers with native HLS support (Safari, iOS)
+                else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoElement.src = hlsUrl;
+                    videoElement.addEventListener('loadedmetadata', () => {
+                        videoElement.play();
+                    });
+                } else {
+                    console.error('HLS is not supported in this browser');
+                }
+            },
+            // Chat methods
+            initChat() {
+                if (!this.streamId) return;
+                // Load chat history
+                this.loadChatHistory();
+                // Connect to WebSocket
+                this.connectChat();
+                // Set up periodic reconnect to prevent stale connections
+                setInterval(() => {
+                    if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
+                        this.connectChat();
+                    }
+                }, 30000); // Check every 30 seconds
+            },
+            async loadChatHistory() {
+                try {
+                    const response = await fetch(`${API_URL}/api/chat/${this.streamId}/history`);
+                    if (response.ok) {
+                        const messages = await response.json();
+                        this.chatMessages = messages;
+                        this.scrollChatToBottom();
+                    }
+                } catch (error) {
+                    console.error('Error loading chat history:', error);
+                }
+            },
+            connectChat() {
+                // Close existing connection
+                if (this.ws) {
+                    this.ws.close();
+                }
+                // Get auth token if available
+                const token = localStorage.getItem('token');
+                let wsUrl = `${WS_URL}/ws/chat/${this.streamId}`;
+                // Add token to URL if authenticated
+                if (token) {
+                    wsUrl += `?token=${token}`;
+                }
+                // Connect to WebSocket
+                this.ws = new WebSocket(wsUrl);
+                // Set up event handlers
+                this.ws.onopen = () => {
+                    console.log('WebSocket connected');
+                };
+                this.ws.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    // Handle emoji animations
+                    if (message.type === 'emoji') {
+                        this.showEmojiAnimation(message.content);
+                    }
+                    // Add message to chat
+                    this.chatMessages.push(message);
+                    // Limit messages to prevent memory issues
+                    if (this.chatMessages.length > 100) {
+                        this.chatMessages.shift();
+                    }
+                    this.scrollChatToBottom();
+                };
+                this.ws.onclose = () => {
+                    console.log('WebSocket disconnected');
+                };
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            },
+            reconnectChat() {
+                this.connectChat();
+            },
+            sendChatMessage() {
+                if (!this.chatInput.trim() || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+                const message = {
+                    type: 'text',
+                    content: this.chatInput.trim()
+                };
+                this.ws.send(JSON.stringify(message));
+                this.chatInput = '';
+            },
+            sendEmoji(emoji) {
+                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+                const message = {
+                    type: 'emoji',
+                    content: emoji
+                };
+                this.ws.send(JSON.stringify(message));
+                this.showEmojiAnimation(emoji); // Show locally immediately
+            },
+            showEmojiAnimation(emoji) {
+                const container = document.getElementById('emojiContainer');
+                if (!container) return;
+                // Create emoji element
+                const emojiElement = document.createElement('div');
+                emojiElement.innerText = emoji;
+                emojiElement.classList.add('emoji-animation');
+                // Add random position
+                const videoPlayer = document.getElementById('videoPlayer');
+                if (videoPlayer) {
+                    const rect = videoPlayer.getBoundingClientRect();
+                    const x = Math.random() * (rect.width - 50);
+                    emojiElement.style.left = `${rect.left + x}px`;
+                    emojiElement.style.top = `${rect.bottom - 100}px`;
+                } else {
+                    // Fallback if video player not found
+                    const x = Math.random() * (window.innerWidth - 50);
+                    emojiElement.style.left = `${x}px`;
+                    emojiElement.style.bottom = '100px';
+                }
+                // Add styles
+                emojiElement.style.position = 'absolute';
+                emojiElement.style.fontSize = '2rem';
+                emojiElement.style.transition = 'all 2s ease-out';
+                emojiElement.style.transform = 'translateY(0)';
+                emojiElement.style.opacity = '1';
+                // Add to container
+                container.appendChild(emojiElement);
+                // Animate upward
+                setTimeout(() => {
+                    emojiElement.style.transform = 'translateY(-100px)';
+                    emojiElement.style.opacity = '0';
+                }, 100);
+                // Remove after animation
+                setTimeout(() => {
+                    container.removeChild(emojiElement);
+                }, 2000);
+            },
+            scrollChatToBottom() {
+                setTimeout(() => {
+                    const chatContainer = document.getElementById('chatMessages');
+                    if (chatContainer) {
+                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                    }
+                }, 50);
+            },
+            // Utility methods
+            getInitials(name) {
+                if (!name) return '';
+                return name.charAt(0).toUpperCase();
+            }
+        };
+    }
+</script>
+</body>
+</html>

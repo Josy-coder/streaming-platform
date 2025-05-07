@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer Dashboard - StreamLive</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.0/flowbite.min.js"></script>
+    
+    <script src="js/common.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+<div x-data="dashboard()" x-init="checkAuth(); loadStreamKey(); checkActiveStream()">
+    
+    <nav class="bg-gray-800">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold">
+                            <a href="/">StreamLive</a>
+                        </h1>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="/" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Home</a>
+                            <a href="/categories.html" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Categories</a>
+                            <a href="/dashboard.html" class="bg-gray-900 text-white rounded-md px-3 py-2 text-sm font-medium">Dashboard</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-4 flex items-center md:ml-6">
+                        <div class="flex items-center">
+                            <a href="/profile.html" class="text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium" x-text="user ? user.username : ''"></a>
+                            <button @click="logout()" class="ml-4 text-gray-300 hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="py-10">
+        <header>
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                <h1 class="text-3xl font-bold tracking-tight">Streamer Dashboard</h1>
+            </div>
+        </header>
+        
+        <div x-show="!isAuthenticated" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-6">
+            <div class="bg-gray-800 rounded-lg p-8 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <h3 class="mt-2 text-xl font-semibold">Authentication Required</h3>
+                <p class="mt-1 text-gray-400">You need to be logged in to access the streamer dashboard.</p>
+                <div class="mt-6">
+                    <a href="/" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                        Return to homepage to login
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <main x-show="isAuthenticated">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-6">
+                
+                <div class="mb-8">
+                    <div class="bg-gray-800 rounded-lg p-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-semibold">Stream Status</h2>
+                            <div x-show="activeStream" class="flex items-center text-green-500">
+                                    <span class="relative flex h-3 w-3 mr-2">
+                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                    </span>
+                                <span>Live</span>
+                            </div>
+                            <div x-show="!activeStream" class="flex items-center text-gray-400">
+                                    <span class="relative flex h-3 w-3 mr-2">
+                                        <span class="relative inline-flex rounded-full h-3 w-3 bg-gray-500"></span>
+                                    </span>
+                                <span>Offline</span>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <template x-if="activeStream">
+                                <div>
+                                    <p class="mb-2">
+                                        <span class="text-gray-400">Title:</span>
+                                        <span x-text="activeStream.title"></span>
+                                    </p>
+                                    <p class="mb-2">
+                                        <span class="text-gray-400">Category:</span>
+                                        <span x-text="activeStream.category || 'Uncategorized'"></span>
+                                    </p>
+                                    <p class="mb-4">
+                                        <span class="text-gray-400">Viewers:</span>
+                                        <span x-text="activeStream.viewerCount"></span>
+                                    </p>
+                                    <div class="flex items-center space-x-2">
+                                        <a :href="'/stream.html?id=' + activeStream.id" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                                            View Stream
+                                        </a>
+                                        <button @click="openUpdateStreamModal()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm">
+                                            Edit Details
+                                        </button>
+                                        <button @click="endStream()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm">
+                                            End Stream
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="!activeStream">
+                                <div>
+                                    <p class="mb-4 text-gray-400">You are not currently streaming.</p>
+                                    <button @click="openStartStreamModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                                        Start a New Stream
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <div class="bg-gray-800 rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">Stream Key</h2>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-400 mb-1">Your Stream Key</label>
+                            <div class="flex">
+                                <input type="password" x-model="streamKey" readonly class="flex-1 px-3 py-2 bg-gray-700 text-white rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <button @click="toggleStreamKeyVisibility()" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-r-md text-gray-300">
+                                    <svg x-show="!showStreamKey" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <svg x-show="showStreamKey" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center mt-4">
+                            <button @click="copyStreamKey()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm mr-2">
+                                Copy Key
+                            </button>
+                            <button @click="regenerateStreamKey()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm">
+                                Regenerate Key
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <div class="bg-gray-800 rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">How to Stream</h2>
+                        <ol class="list-decimal pl-5 space-y-2 text-gray-300">
+                            <li>
+                                <strong>Set up OBS Studio</strong> - Download and install <a href="https://obsproject.com/" target="_blank" class="text-blue-400 hover:underline">OBS Studio</a>, the most popular free streaming software.
+                            </li>
+                            <li>
+                                <strong>Configure your stream</strong> - In OBS, go to Settings > Stream and select:
+                                <ul class="list-disc pl-5 mt-1 space-y-1">
+                                    <li>Service: Custom</li>
+                                    <li>Server: rtmp://localhost:1935/live</li>
+                                    <li>Stream Key: Your stream key from above</li>
+                                </ul>
+                            </li>
+                            <li>
+                                <strong>Set up your scenes</strong> - Create at least one scene with your camera, game capture, or screen capture.
+                            </li>
+                            <li>
+                                <strong>Start streaming</strong> - Click the "Start Streaming" button in OBS to go live.
+                            </li>
+                            <li>
+                                <strong>Manage your stream</strong> - Use this dashboard to update your stream title, category, and monitor viewers.
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <div class="bg-gray-800 rounded-lg p-6">
+                        <h2 class="text-xl font-semibold mb-4">Past Streams</h2>
+                        <div x-show="loadingPastStreams" class="text-center py-4">
+                            <div role="status">
+                                <svg aria-hidden="true" class="inline w-6 h-6 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                                    <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                                </svg>
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                        
+                        <div x-show="!loadingPastStreams && pastStreams.length === 0" class="text-center py-4">
+                            <p class="text-gray-400">You haven't streamed yet.</p>
+                        </div>
+                        
+                        <div x-show="!loadingPastStreams && pastStreams.length > 0" class="overflow-x-auto">
+                            <table class="w-full text-left text-gray-300">
+                                <thead class="text-xs uppercase bg-gray-700">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Title</th>
+                                    <th scope="col" class="px-4 py-3">Date</th>
+                                    <th scope="col" class="px-4 py-3">Duration</th>
+                                    <th scope="col" class="px-4 py-3">Viewers</th>
+                                    <th scope="col" class="px-4 py-3">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <template x-for="stream in pastStreams" :key="stream.id">
+                                    <tr class="border-b border-gray-700">
+                                        <td class="px-4 py-3" x-text="stream.title"></td>
+                                        <td class="px-4 py-3" x-text="formatDate(stream.startedAt)"></td>
+                                        <td class="px-4 py-3" x-text="calculateDuration(stream.startedAt, stream.endedAt)"></td>
+                                        <td class="px-4 py-3" x-text="stream.viewerCount"></td>
+                                        <td class="px-4 py-3">
+                                            <button class="text-blue-400 hover:underline">View</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <div x-show="startStreamModalOpen" class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div @click.outside="startStreamModalOpen = false" class="bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Start Streaming</h2>
+                <button @click="startStreamModalOpen = false" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form @submit.prevent="startStream()">
+                <div class="mb-4">
+                    <label for="stream-title" class="block text-sm font-medium text-gray-400 mb-1">Stream Title</label>
+                    <input x-model="streamForm.title" type="text" id="stream-title" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="stream-category" class="block text-sm font-medium text-gray-400 mb-1">Category</label>
+                    <select x-model="streamForm.category" id="stream-category" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select a category</option>
+                        <option value="Gaming">Gaming</option>
+                        <option value="Just Chatting">Just Chatting</option>
+                        <option value="Music">Music</option>
+                        <option value="Art">Art</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Education">Education</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label for="stream-description" class="block text-sm font-medium text-gray-400 mb-1">Description (optional)</label>
+                    <textarea x-model="streamForm.description" id="stream-description" rows="3" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div x-show="streamError" class="mb-4 text-red-500 text-sm" x-text="streamError"></div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md">Create Stream</button>
+            </form>
+        </div>
+    </div>
+    
+    <div x-show="updateStreamModalOpen" class="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
+        <div @click.outside="updateStreamModalOpen = false" class="bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Update Stream</h2>
+                <button @click="updateStreamModalOpen = false" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form @submit.prevent="updateStream()">
+                <div class="mb-4">
+                    <label for="update-stream-title" class="block text-sm font-medium text-gray-400 mb-1">Stream Title</label>
+                    <input x-model="streamForm.title" type="text" id="update-stream-title" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="update-stream-category" class="block text-sm font-medium text-gray-400 mb-1">Category</label>
+                    <select x-model="streamForm.category" id="update-stream-category" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select a category</option>
+                        <option value="Gaming">Gaming</option>
+                        <option value="Just Chatting">Just Chatting</option>
+                        <option value="Music">Music</option>
+                        <option value="Art">Art</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Education">Education</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label for="update-stream-description" class="block text-sm font-medium text-gray-400 mb-1">Description (optional)</label>
+                    <textarea x-model="streamForm.description" id="update-stream-description" rows="3" class="w-full px-3 py-2 bg-gray-700 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div x-show="streamError" class="mb-4 text-red-500 text-sm" x-text="streamError"></div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md">Update Stream</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    function dashboard() {
+        return {
+            // State
+            isAuthenticated: false,
+            user: null,
+            streamKey: '',
+            showStreamKey: false,
+            activeStream: null,
+            pastStreams: [],
+            loadingPastStreams: true,
+            startStreamModalOpen: false,
+            updateStreamModalOpen: false,
+            streamError: null,
+            // Form data
+            streamForm: {
+                title: '',
+                category: '',
+                description: ''
+            },
+            // Methods
+            async checkAuth() {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    this.isAuthenticated = false;
+                    this.user = null;
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_URL}/api/user`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const userData = await response.json();
+                        this.user = userData;
+                        this.isAuthenticated = true;
+                        this.loadPastStreams();
+                    } else {
+                        // Token is invalid, clear it
+                        localStorage.removeItem('token');
+                        this.isAuthenticated = false;
+                        this.user = null;
+                    }
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                    this.isAuthenticated = false;
+                    this.user = null;
+                }
+            },
+            async loadStreamKey() {
+                if (!this.isAuthenticated) return;
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/streams/key`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.streamKey = data.streamKey;
+                    } else {
+                        console.error('Failed to load stream key');
+                    }
+                } catch (error) {
+                    console.error('Error loading stream key:', error);
+                }
+            },
+            async checkActiveStream() {
+                if (!this.isAuthenticated) return;
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/streams/active`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.id) {
+                            this.activeStream = data;
+                            // Start periodic poll for viewer count
+                            this.startViewerCountPoll();
+                        } else {
+                            this.activeStream = null;
+                        }
+                    } else {
+                        this.activeStream = null;
+                    }
+                } catch (error) {
+                    console.error('Error checking active stream:', error);
+                    this.activeStream = null;
+                }
+            },
+            async loadPastStreams() {
+                if (!this.isAuthenticated) return;
+                this.loadingPastStreams = true;
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/streams/history`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        this.pastStreams = await response.json();
+                    } else {
+                        console.error('Failed to load past streams');
+                        this.pastStreams = [];
+                    }
+                } catch (error) {
+                    console.error('Error loading past streams:', error);
+                    this.pastStreams = [];
+                } finally {
+                    this.loadingPastStreams = false;
+                }
+            },
+            async startViewerCountPoll() {
+                if (!this.activeStream) return;
+                // Poll every 30 seconds
+                setInterval(async () => {
+                    if (!this.activeStream) return;
+                    const token = localStorage.getItem('token');
+                    try {
+                        const response = await fetch(`${API_URL}/api/streams/${this.activeStream.id}`, {
+                            headers: {
+                                'Authorization': `Bearer ${token}`
+                            }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.activeStream = data;
+                        }
+                    } catch (error) {
+                        console.error('Error updating viewer count:', error);
+                    }
+                }, 30000);
+            },
+            toggleStreamKeyVisibility() {
+                this.showStreamKey = !this.showStreamKey;
+            },
+            copyStreamKey() {
+                navigator.clipboard.writeText(this.streamKey)
+                    .then(() => {
+                        alert('Stream key copied to clipboard');
+                    })
+                    .catch((err) => {
+                        console.error('Error copying stream key:', err);
+                        alert('Failed to copy stream key');
+                    });
+            },
+            async regenerateStreamKey() {
+                if (!confirm('Are you sure you want to regenerate your stream key? This will invalidate your current key and you will need to update your streaming software.')) {
+                    return;
+                }
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/streams/key/regenerate`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.streamKey = data.streamKey;
+                        alert('Stream key regenerated successfully');
+                    } else {
+                        alert('Failed to regenerate stream key');
+                    }
+                } catch (error) {
+                    console.error('Error regenerating stream key:', error);
+                    alert('An error occurred while regenerating your stream key');
+                }
+            },
+            openStartStreamModal() {
+                this.streamForm = {
+                    title: '',
+                    category: '',
+                    description: ''
+                };
+                this.streamError = null;
+                this.startStreamModalOpen = true;
+            },
+            openUpdateStreamModal() {
+                if (!this.activeStream) return;
+                this.streamForm = {
+                    title: this.activeStream.title,
+                    category: this.activeStream.category,
+                    description: this.activeStream.description || ''
+                };
+                this.streamError = null;
+                this.updateStreamModalOpen = true;
+            },
+            async startStream() {
+                this.streamError = null;
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/streams`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.streamForm)
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.activeStream = data;
+                        this.startStreamModalOpen = false;
+                        // Start viewer count polling
+                        this.startViewerCountPoll();
+                    } else {
+                        const error = await response.json();
+                        this.streamError = error.error || 'Failed to create stream';
+                    }
+                } catch (error) {
+                    console.error('Error creating stream:', error);
+                    this.streamError = 'An unexpected error occurred';
+                }
+            },
+            async updateStream() {
+                if (!this.activeStream) return;
+                this.streamError = null;
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/streams/${this.activeStream.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(this.streamForm)
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.activeStream = data;
+                        this.updateStreamModalOpen = false;
+                    } else {
+                        const error = await response.json();
+                        this.streamError = error.error || 'Failed to update stream';
+                    }
+                } catch (error) {
+                    console.error('Error updating stream:', error);
+                    this.streamError = 'An unexpected error occurred';
+                }
+            },
+            async endStream() {
+                if (!this.activeStream) return;
+                if (!confirm('Are you sure you want to end your stream? This cannot be undone.')) {
+                    return;
+                }
+                const token = localStorage.getItem('token');
+                try {
+                    const response = await fetch(`${API_URL}/api/streams/${this.activeStream.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (response.ok) {
+                        this.activeStream = null;
+                        // Reload past streams to include the one we just ended
+                        this.loadPastStreams();
+                    } else {
+                        alert('Failed to end stream');
+                    }
+                } catch (error) {
+                    console.error('Error ending stream:', error);
+                    alert('An error occurred while ending your stream');
+                }
+            },
+            logout() {
+                localStorage.removeItem('token');
+                this.isAuthenticated = false;
+                this.user = null;
+                this.activeStream = null;
+                window.location.href = '/';
+            },
+            // Utility functions
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            },
+            calculateDuration(startDateString, endDateString) {
+                const startDate = new Date(startDateString);
+                const endDate = endDateString ? new Date(endDateString) : new Date();
+                const durationMs = endDate - startDate;
+                const durationMinutes = Math.floor(durationMs / (1000 * 60));
+                if (durationMinutes < 60) {
+                    return `${durationMinutes} min`;
+                } else {
+                    const hours = Math.floor(durationMinutes / 60);
+                    const minutes = durationMinutes % 60;
+                    return `${hours}h ${minutes}m`;
+                }
+            }
+        };
+    }
+</script>
+</body>
+</html>
