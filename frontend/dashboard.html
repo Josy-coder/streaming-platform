@@ -318,7 +318,6 @@
 <script>
     function dashboard() {
         return {
-            // State
             isAuthenticated: false,
             user: null,
             streamKey: '',
@@ -329,13 +328,11 @@
             startStreamModalOpen: false,
             updateStreamModalOpen: false,
             streamError: null,
-            // Form data
             streamForm: {
                 title: '',
                 category: '',
                 description: ''
             },
-            // Methods
             async checkAuth() {
                 const token = localStorage.getItem('token');
                 if (!token) {
@@ -436,7 +433,6 @@
             },
             async startViewerCountPoll() {
                 if (!this.activeStream) return;
-                // Poll every 30 seconds
                 setInterval(async () => {
                     if (!this.activeStream) return;
                     const token = localStorage.getItem('token');
@@ -527,7 +523,7 @@
                         const data = await response.json();
                         this.activeStream = data;
                         this.startStreamModalOpen = false;
-                        // Start viewer count polling
+
                         this.startViewerCountPoll();
                     } else {
                         const error = await response.json();
@@ -579,7 +575,7 @@
                     });
                     if (response.ok) {
                         this.activeStream = null;
-                        // Reload past streams to include the one we just ended
+
                         this.loadPastStreams();
                     } else {
                         alert('Failed to end stream');
@@ -596,7 +592,7 @@
                 this.activeStream = null;
                 window.location.href = '/';
             },
-            // Utility functions
+
             formatDate(dateString) {
                 const date = new Date(dateString);
                 return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();

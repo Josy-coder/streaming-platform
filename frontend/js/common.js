@@ -1,7 +1,7 @@
 
-const API_URL = 'http://localhost:3000'; // API server
-const MEDIA_URL = 'http://localhost:8081'; // NGINX media server
-const WS_URL = 'ws://localhost:3000'; // WebSocket URL
+const API_URL = 'http://localhost:3000';
+const MEDIA_URL = 'http://localhost:8081';
+const WS_URL = 'ws://localhost:3000';
 function getAuthToken() {
     return localStorage.getItem('token');
 }

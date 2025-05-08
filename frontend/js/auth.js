@@ -1,5 +1,5 @@
 
-const API_URL = 'http://localhost:3000'; // API server
+const API_URL = 'http://localhost:3000';
 let authToken = null;
 let currentUser = null;
 function checkAuth() {

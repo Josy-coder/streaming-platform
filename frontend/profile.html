@@ -147,19 +147,18 @@
 <script>
     function profilePage() {
         return {
-            // State
+
             isAuthenticated: false,
             user: null,
             updateError: null,
             updateSuccess: false,
             deleteModalOpen: false,
             deleteConfirmation: '',
-            // Form data
+
             profileForm: {
                 email: '',
                 password: ''
             },
-            // Initialize
             async checkAuth() {
                 const token = localStorage.getItem('token');
                 if (!token) {
@@ -177,10 +176,9 @@
                         const userData = await response.json();
                         this.user = userData;
                         this.isAuthenticated = true;
-                        // Initialize form with current values
                         this.profileForm.email = userData.email;
                     } else {
-                        // Token is invalid, clear it
+
                         localStorage.removeItem('token');
                         this.isAuthenticated = false;
                         this.user = null;
@@ -194,7 +192,7 @@
             async updateProfile() {
                 this.updateError = null;
                 this.updateSuccess = false;
-                // Check if form is empty
+
                 if (!this.profileForm.email && !this.profileForm.password) {
                     this.updateError = 'No changes to save';
                     return;
@@ -213,9 +211,8 @@
                         const userData = await response.json();
                         this.user = userData;
                         this.updateSuccess = true;
-                        // Clear password field after update
+
                         this.profileForm.password = '';
-                        // Hide success message after 3 seconds
                         setTimeout(() => {
                             this.updateSuccess = false;
                         }, 3000);
@@ -263,7 +260,6 @@
                 this.user = null;
                 window.location.href = '/';
             },
-            // Utility functions
             formatDate(dateString) {
                 const date = new Date(dateString);
                 return date.toLocaleDateString();

@@ -1,23 +1,22 @@
 package main
 
-import 
 import (
+	_ "embed"
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"time"
 	"github.com/josy-coder/streaming-platfrom/api/auth"
 	"github.com/josy-coder/streaming-platfrom/api/chat"
 	"github.com/josy-coder/streaming-platfrom/api/config"
 	"github.com/josy-coder/streaming-platfrom/api/db"
 	"github.com/josy-coder/streaming-platfrom/api/middleware"
+	"github.com/josy-coder/streaming-platfrom/api/stream"
 	"log"
 	"net/http"
 	_ "os"
 	"time"
-	"github.com/go-chi/cors"
-t
 )
+
 func main() {
 	cfg := config.Load()
 	database, err := db.InitDB(cfg.DatabasePath)

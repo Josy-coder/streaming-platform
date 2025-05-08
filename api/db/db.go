@@ -3,14 +3,16 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
 	"path/filepath"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
+// Schema contains the SQL needed to create the database
 const Schema = `
--- Users table
+
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
@@ -21,7 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
--- Streams table
+
 CREATE TABLE IF NOT EXISTS streams (
     id TEXT PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -35,7 +37,7 @@ CREATE TABLE IF NOT EXISTS streams (
     thumbnail_url TEXT,
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
--- Messages table
+
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     stream_id TEXT NOT NULL,
@@ -47,7 +49,7 @@ CREATE TABLE IF NOT EXISTS messages (
     FOREIGN KEY (stream_id) REFERENCES streams (id),
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
--- Followers table
+
 CREATE TABLE IF NOT EXISTS followers (
     follower_id INTEGER NOT NULL,
     followed_id INTEGER NOT NULL,
@@ -56,7 +58,7 @@ CREATE TABLE IF NOT EXISTS followers (
     FOREIGN KEY (follower_id) REFERENCES users (id),
     FOREIGN KEY (followed_id) REFERENCES users (id)
 );
--- Create indexes
+
 CREATE INDEX IF NOT EXISTS idx_streams_user_id ON streams (user_id);
 CREATE INDEX IF NOT EXISTS idx_streams_is_live ON streams (is_live);
 CREATE INDEX IF NOT EXISTS idx_messages_stream_id ON messages (stream_id);
@@ -65,26 +67,32 @@ CREATE INDEX IF NOT EXISTS idx_followers_followed_id ON followers (followed_id);
 `
 
 func InitDB(dbPath string) (*sql.DB, error) {
+
 	dbDir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dbDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
+
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
+
 	if err := db.Ping(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
+
 	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to enable foreign keys: %w", err)
 	}
+
 	if _, err := db.Exec(Schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to create schema: %w", err)
 	}
+
 	log.Println("Database initialized successfully")
 	return db, nil
 }

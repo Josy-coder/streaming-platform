@@ -246,7 +246,6 @@
 <script>
     function streamPage() {
         return {
-            // State
             isAuthenticated: false,
             user: null,
             stream: null,
@@ -272,19 +271,15 @@
                 email: '',
                 password: ''
             },
-            // Initialize
             init() {
-                // Get stream ID from URL
                 const urlParams = new URLSearchParams(window.location.search);
                 this.streamId = urlParams.get('id');
                 if (!this.streamId) {
-                    // No stream ID provided
                     this.loading = false;
                     this.stream = null;
                     return;
                 }
             },
-            // Methods for auth
             async checkAuth() {
                 const token = localStorage.getItem('token');
                 if (token) {
@@ -339,7 +334,6 @@
                         this.user = data.user;
                         this.isAuthenticated = true;
                         this.loginModalOpen = false;
-                        // Reconnect WebSocket with auth
                         this.reconnectChat();
                     } else {
                         const error = await response.json();
@@ -366,7 +360,6 @@
                         this.user = data.user;
                         this.isAuthenticated = true;
                         this.registerModalOpen = false;
-                        // Reconnect WebSocket with auth
                         this.reconnectChat();
                     } else {
                         const error = await response.json();
@@ -381,10 +374,9 @@
                 localStorage.removeItem('token');
                 this.isAuthenticated = false;
                 this.user = null;
-                // Reconnect WebSocket without auth
                 this.reconnectChat();
             },
-            // Stream methods
+
             async loadStreamData() {
                 if (!this.streamId) return;
                 this.loading = true;
@@ -409,9 +401,9 @@
                 if (!this.stream) return;
                 const videoElement = document.getElementById('videoPlayer');
                 if (!videoElement) return;
-                // Get HLS URL
+
                 const hlsUrl = `${MEDIA_URL}/hls/${this.stream.id}/index.m3u8`;
-                // Check if HLS.js is supported
+
                 if (Hls.isSupported()) {
                     const hls = new Hls({
                         enableWorker: true,
@@ -424,7 +416,6 @@
                     });
                     this.player = hls;
                 }
-                // For browsers with native HLS support (Safari, iOS)
                 else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
                     videoElement.src = hlsUrl;
                     videoElement.addEventListener('loadedmetadata', () => {
@@ -437,16 +428,14 @@
             // Chat methods
             initChat() {
                 if (!this.streamId) return;
-                // Load chat history
+
                 this.loadChatHistory();
-                // Connect to WebSocket
                 this.connectChat();
-                // Set up periodic reconnect to prevent stale connections
                 setInterval(() => {
                     if (this.ws && this.ws.readyState !== WebSocket.OPEN) {
                         this.connectChat();
                     }
-                }, 30000); // Check every 30 seconds
+                }, 30000);
             },
             async loadChatHistory() {
                 try {
@@ -461,32 +450,31 @@
                 }
             },
             connectChat() {
-                // Close existing connection
                 if (this.ws) {
                     this.ws.close();
                 }
-                // Get auth token if available
+
                 const token = localStorage.getItem('token');
                 let wsUrl = `${WS_URL}/ws/chat/${this.streamId}`;
-                // Add token to URL if authenticated
+
                 if (token) {
                     wsUrl += `?token=${token}`;
                 }
-                // Connect to WebSocket
+
                 this.ws = new WebSocket(wsUrl);
-                // Set up event handlers
+
                 this.ws.onopen = () => {
                     console.log('WebSocket connected');
                 };
                 this.ws.onmessage = (event) => {
                     const message = JSON.parse(event.data);
-                    // Handle emoji animations
+
                     if (message.type === 'emoji') {
                         this.showEmojiAnimation(message.content);
                     }
-                    // Add message to chat
+
                     this.chatMessages.push(message);
-                    // Limit messages to prevent memory issues
+
                     if (this.chatMessages.length > 100) {
                         this.chatMessages.shift();
                     }
@@ -518,7 +506,7 @@
                     content: emoji
                 };
                 this.ws.send(JSON.stringify(message));
-                this.showEmojiAnimation(emoji); // Show locally immediately
+                this.showEmojiAnimation(emoji);
             },
             showEmojiAnimation(emoji) {
                 const container = document.getElementById('emojiContainer');
@@ -527,7 +515,7 @@
                 const emojiElement = document.createElement('div');
                 emojiElement.innerText = emoji;
                 emojiElement.classList.add('emoji-animation');
-                // Add random position
+
                 const videoPlayer = document.getElementById('videoPlayer');
                 if (videoPlayer) {
                     const rect = videoPlayer.getBoundingClientRect();
@@ -535,25 +523,24 @@
                     emojiElement.style.left = `${rect.left + x}px`;
                     emojiElement.style.top = `${rect.bottom - 100}px`;
                 } else {
-                    // Fallback if video player not found
                     const x = Math.random() * (window.innerWidth - 50);
                     emojiElement.style.left = `${x}px`;
                     emojiElement.style.bottom = '100px';
                 }
-                // Add styles
+
                 emojiElement.style.position = 'absolute';
                 emojiElement.style.fontSize = '2rem';
                 emojiElement.style.transition = 'all 2s ease-out';
                 emojiElement.style.transform = 'translateY(0)';
                 emojiElement.style.opacity = '1';
-                // Add to container
+
                 container.appendChild(emojiElement);
-                // Animate upward
+
                 setTimeout(() => {
                     emojiElement.style.transform = 'translateY(-100px)';
                     emojiElement.style.opacity = '0';
                 }, 100);
-                // Remove after animation
+
                 setTimeout(() => {
                     container.removeChild(emojiElement);
                 }, 2000);
@@ -566,7 +553,7 @@
                     }
                 }, 50);
             },
-            // Utility methods
+
             getInitials(name) {
                 if (!name) return '';
                 return name.charAt(0).toUpperCase();

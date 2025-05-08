@@ -1,7 +1,6 @@
 version: '3'
 
 services:
-  # Frontend static server
   frontend:
     image: nginx:alpine
     container_name: stream-frontend
@@ -13,8 +12,6 @@ services:
     depends_on:
       - api
     restart: unless-stopped
-
-  # Go API backend
   api:
     build:
       context: ../api
@@ -34,8 +31,6 @@ services:
     depends_on:
       - valkey
     restart: unless-stopped
-
-  # RTMP ingest server
   rtmp:
     image: tiangolo/nginx-rtmp
     container_name: stream-rtmp
@@ -48,8 +43,6 @@ services:
     depends_on:
       - api
     restart: unless-stopped
-
-  # Valkey (Redis fork) for chat
   valkey:
     image: valkey/valkey:latest
     container_name: stream-valkey
@@ -58,14 +51,13 @@ services:
     volumes:
       - ../data/valkey:/data
     restart: unless-stopped
-
-  # MinIO for file storage (optional, comment out if not needed)
+# I might not need it
   minio:
     image: minio/minio
     container_name: stream-minio
     ports:
-      - "9000:9000"  # API
-      - "9001:9001"  # Console
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - ../data/minio:/data
     environment:

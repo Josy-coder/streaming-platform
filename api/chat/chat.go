@@ -210,7 +210,7 @@ func (s *Service) readMessages(hub *StreamHub, client *Client) {
 			continue
 		}
 		if len(message.Content) > 500 {
-			message.Content = message.Content[:500] // Limit to 500 chars
+			message.Content = message.Content[:500]
 		}
 		hub.broadcast <- message
 	}
