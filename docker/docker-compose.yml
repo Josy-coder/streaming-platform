@@ -14,13 +14,12 @@ services:
     restart: unless-stopped
   api:
     build:
-      context: ../api
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: api/Dockerfile
     container_name: stream-api
     ports:
       - "3000:3000"
     volumes:
-      - ../api:/app
       - ../data:/data
       - ../media:/media
     environment:
