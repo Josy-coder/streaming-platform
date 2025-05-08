@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -278,7 +280,7 @@ func (s *Service) generateToken(userId int64, username string) (string, error) {
 	jsonToken := paseto.JSONToken{
 		Audience:   "streaming-platform",
 		Issuer:     "streaming-platform",
-		Jti:        "unique-token-id",
+		Jti:        uuid.New().String(),
 		Subject:    username,
 		IssuedAt:   now,
 		Expiration: exp,
@@ -288,10 +290,16 @@ func (s *Service) generateToken(userId int64, username string) (string, error) {
 	jsonToken.Set("user_id", strconv.FormatInt(userId, 10))
 
 	footer := "streaming-platform-auth"
-	secretKey := []byte("thisisatestkeydonotuseittheywillhackyou")
+	secretKey := []byte(os.Getenv("SECRET_KEY"))
+	if len(secretKey) == 0 {
+		secretKey = []byte("thisisatestkeydonotuseittheywillhackyou")
+	}
+
+	log.Printf("Generating token for user %s (ID: %d) with key length %d", username, userId, len(secretKey))
 
 	token, err := s.paseto.Encrypt(secretKey, jsonToken, footer)
 	if err != nil {
+		log.Printf("Error during token encryption: %v", err)
 		return "", err
 	}
 
@@ -302,7 +310,10 @@ func (s *Service) ValidateToken(token string) (int64, string, error) {
 	var jsonToken paseto.JSONToken
 	var footer string
 
-	secretKey := []byte("thisisatestkeyimadeitupdonotuseittheywillhackyou")
+	secretKey := []byte(os.Getenv("SECRET_KEY"))
+	if len(secretKey) == 0 {
+		secretKey = []byte("thisisatestkeydonotuseittheywillhackyou")
+	}
 
 	err := s.paseto.Decrypt(token, secretKey, &jsonToken, &footer)
 	if err != nil {
